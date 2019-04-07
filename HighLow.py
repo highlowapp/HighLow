@@ -16,6 +16,7 @@ class HighLow:
         self.high = ""
         self.low = ""
         self.timestamp = None
+        self.protected_columns = []
 
     def create(self, uid, high, low):
         ## Create a new High/Low entry in the database ##
@@ -120,7 +121,6 @@ class HighLow:
         conn.close()
 
     
-    #TODO: Add functions for getting data and commenting
     def comment(self, uid, message):
         #Collect the specified data and add to the database
         conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
@@ -132,7 +132,7 @@ class HighLow:
         #Clean the message
         cleaned_message = bleach.clean(message)
 
-        cursor.execute( "INSERT INTO comments(commentid, highlowid, uid, message, _timestamp) VALUES('{}', '{}', '{}', '{}', {});".format(commentid, self.high_low_id, uid, message, timestamp) )
+        cursor.execute( "INSERT INTO comments(commentid, highlowid, uid, message, _timestamp) VALUES('{}', '{}', '{}', '{}', {});".format(commentid, self.high_low_id, uid, cleaned_message, timestamp) )
 
         conn.commit()
         conn.close()
@@ -164,4 +164,18 @@ class HighLow:
         conn.commit()
         conn.close()
 
-    
+    def get(self, uid, column_name):
+
+        column_name = bleach.clean(column_name)
+
+        if column_name in self.protected_columns:
+            return '{ "error": "column_unavailable" }'
+
+        conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
+
+        cursor.execute( "SELECT {} FROM highlows WHERE highlowid='{}';".format(column_name, self.high_low_id) )
+
+        result = cursor.fetchone()
+
+        return json.dumps( { "result": result[column_name] } )
