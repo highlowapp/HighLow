@@ -17,25 +17,8 @@ class HighLow:
         self.low = ""
         self.timestamp = None
 
-    def create(self, token, high, low):
-
+    def create(self, uid, high, low):
         ## Create a new High/Low entry in the database ##
-        #Verify the user
-
-        #Make a request to the auth service
-        authentication_request = requests.post("http://auth_service/verify_token", headers={'Authorization':'Bearer ' + str(token) })
-
-        #Parse the response as JSON
-        authentication_request_json = authentication_request.json()
-
-
-        #If there was an error, return an error
-        if "error" in authentication_request_json:
-            return '{ "error":"' + authentication_request_json["error"] + '" }'
-
-        #Get the UID
-        uid = authentication_request_json["uid"]
-
         #Connect to MySQL
         conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
         cursor = conn.cursor()
@@ -62,24 +45,8 @@ class HighLow:
 
 
 
-    def update(self, token, high, low):
+    def update(self, high, low):
         ## Update the High/Low database entry ##
-        #Verify the user
-
-        #Make a request to the auth service
-        authentication_request = requests.post("http://auth_service/verify_token", headers={'Authorization':'Bearer ' + str(token) })
-
-        #Parse the response as JSON
-        authentication_request_json = authentication_request.json()
-
-
-        #If there was an error, return an error
-        if "error" in authentication_request_json:
-            return '{ "error":"' + authentication_request_json["error"] + '" }'
-
-        #Get the UID
-        uid = authentication_request_json["uid"]
-
         #Connect to MySQL
         conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
         cursor = conn.cursor()
@@ -89,7 +56,7 @@ class HighLow:
         self.low = bleach.clean(low)
 
         #Update the data
-        cursor.execute("UPDATE highlows SET high='" + self.high + "', low='" + self.low + "' WHERE highlowid='" + self.high_low_id + "' AND uid='" + uid + "';")
+        cursor.execute("UPDATE highlows SET high='" + self.high + "', low='" + self.low + "' WHERE highlowid='" + self.high_low_id + "';")
 
         #Commit and close the connection
         conn.commit()
@@ -97,35 +64,60 @@ class HighLow:
 
 
 
-    def delete(self, token):
+    def delete(self):
         ## Delete the HighLow database entry ##
-        #Verify the user
-
-        #Make a request to the auth service
-        authentication_request = requests.post("http://auth_service/verify_token", headers={'Authorization':'Bearer ' + str(token) })
-
-        #Parse the response as JSON
-        authentication_request_json = authentication_request.json()
-
-
-        #If there was an error, return an error
-        if "error" in authentication_request_json:
-            return '{ "error":"' + authentication_request_json["error"] + '" }'
-
-        #Get the UID
-        uid = authentication_request_json["uid"]
-
         #Connect to MySQL
         conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
         cursor = conn.cursor()
 
         #Delete the entry
-        cursor.execute("DELETE FROM highlows WHERE highlowid='" + self.high_low_id + "' AND uid='" + uid + "';")
+        cursor.execute("DELETE FROM highlows WHERE highlowid='" + self.high_low_id + "';")
 
         #Commit and close the connection
         conn.commit()
         conn.close()
 
     
-    #TODO: Add functions for getting data, liking, and commenting
-     
+    #TODO: Add functions for getting data and commenting
+    def update_total_likes(self):
+        ## Count the number of likes in the database that belong to the current high/low ##
+        conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
+
+        cursor.execute( "SELECT id FROM likes WHERE highlowid='{}'".format(self.high_low_id) )
+
+        likes = cursor.fetchall()
+        total_likes = len(likes)
+
+        cursor.execute( "UPDATE highlows SET total_likes={} WHERE highlowid='{}'".format(total_likes, self.high_low_id) )
+
+        conn.commit()
+        conn.close()
+
+    def like(self, uid):
+        ## Add a new entry to the "Likes" table 
+        #Connect to MySQL
+        conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
+
+        #Create the entry
+        cursor.execute( "INSERT INTO likes(highlowid, uid) VALUES('{}', '{}');".format(self.high_low_id, uid) )
+
+        #Commit and close the connection
+        conn.commit()
+        conn.close()
+
+    def unlike(self, uid):
+        ## Remove the entry in the "Likes" table that corresponds to the current user and this high/low ##
+        #Connect to MySQL
+        conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
+
+        #Delete the entry, if it exists
+        cursor.execute( "DELETE FROM likes WHERE highlowid='{}' AND uid='{}';".format(self.high_low_id, uid) )
+
+        #Commit and close the connection
+        conn.commit()
+        conn.close()
+
+    
