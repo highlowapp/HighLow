@@ -12,7 +12,7 @@ class HighLow:
         self.username = username
         self.password = password
         self.database = database
-        self.high_low_id = high_low_id
+        self.high_low_id = bleach.clean(high_low_id)
         self.high = ""
         self.low = ""
         self.timestamp = None
@@ -78,7 +78,6 @@ class HighLow:
         conn.close()
 
     
-    #TODO: Add functions for getting data and commenting
     def update_total_likes(self):
         ## Count the number of likes in the database that belong to the current high/low ##
         conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
@@ -117,6 +116,51 @@ class HighLow:
         cursor.execute( "DELETE FROM likes WHERE highlowid='{}' AND uid='{}';".format(self.high_low_id, uid) )
 
         #Commit and close the connection
+        conn.commit()
+        conn.close()
+
+    
+    #TODO: Add functions for getting data and commenting
+    def comment(self, uid, message):
+        #Collect the specified data and add to the database
+        conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
+
+        commentid = str( uuid.uuid1() )
+        timestamp = datetime.datetime.now().timestamp()
+
+        #Clean the message
+        cleaned_message = bleach.clean(message)
+
+        cursor.execute( "INSERT INTO comments(commentid, highlowid, uid, message, _timestamp) VALUES('{}', '{}', '{}', '{}', {});".format(commentid, self.high_low_id, uid, message, timestamp) )
+
+        conn.commit()
+        conn.close()
+
+    def update_comment(self, uid, commentid, message):
+        #Find the comment and udpate the database
+        conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
+
+        #TODO: Should we update the timestamp or not?
+
+        cleaned_message = bleach.clean(message)
+        cleaned_commentid = bleach.clean(commentid)
+        
+        cursor.execute( "UPDATE comments SET message='{}' WHERE commentid='{}' AND highlowid='{}' AND uid='{}';".format(cleaned_message, cleaned_commentid, self.high_low_id, uid) )
+
+        conn.commit()
+        conn.close()
+
+    def delete_comment(self, uid, commentid):
+        #Find the comment and udpate the database
+        conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
+
+        cleaned_commentid = bleach.clean(commentid)
+
+        cursor.execute( "DELETE FROM comments WHERE commentid='{}' AND uid='{}' AND highlowid='{}';".format(cleaned_commentid, uid, self.high_low_id) )
+
         conn.commit()
         conn.close()
 
