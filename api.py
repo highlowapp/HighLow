@@ -1,32 +1,106 @@
-from flask import Flask, redirect, url_for, request
-import requests #This is not used for now but it may be implemented in the future 
+from flask import Flask, request
+from HighLow import HighLow
+from HighLowList import HighLowList
+import requests 
+import Helpers
+import json
 
 #Create a Flask app instance
 app = Flask(__name__)
 
-home = ""
-high_low_input = ""
+#MySQL credentials
+mysql_config = Helpers.read_json_from_file("config/mysql_config.json")
 
-with open("home.html", 'r') as file:
-    home = file.read()
+host = mysql_config["host"]
+username = mysql_config["username"]
+password = mysql_config["password"]
+database = mysql_config["database"]
 
-with open("HighLow_Input.html", 'r') as file:
-    high_low_input = file.read()
 
-@app.route("/", methods=["GET", "POST"])
-def main_page():
-    return home
 
-@app.route("/input", methods=["GET", "POST"])
-def HighLowInput():
-    if request.method == "POST":
-        return redirect(url_for('display'))
-    return high_low_input
 
-@app.route("/display", methods=["GET", "POST"])
-def display():
-    if request.method == 'POST':
-      return 'High: {} <br> Low: {}'.format(request.form['high'], request.form['low'])
+@app.route("/set/<highlowid:string>", methods=["POST"])
+def setproperty(highlowid):
+	#Verify auth token
+	token = request.headers["Authentication"].replace("Bearer ", "")
+
+	verification = Helpers.verify_token(token)
+
+	if 'error' in verification:
+		return verification
+
+	else:
+		uid = verification["uid"]
+
+		high = request.form.get("high") or ""
+		low = request.form.get("low") or ""
+
+		highlow = None
+
+		if "highlowid" in request.form:
+			highlow = HighLow(host, username, password, database, request.form["highlowid"])
+			highlow.update(high, low)
+
+		else:
+			highlow = HighLow(host, username, password, database)
+			highlow.create(uid, high, low)
+
+
+	
+    
+
+
+
+
+@app.route("/like/<highlowid:string>", methods=["POST"])
+def like(highlowid):
+    #Verify auth token
+	token = request.headers["Authentication"].replace("Bearer ", "")
+
+	verification = Helpers.verify_token(token)
+
+	if 'error' in verification:
+		return verification
+
+	else:
+		uid = verification["uid"]
+
+		if 'highlowid' in request.form:
+			highlow = HighLow(host, username, password, database, request.form["highlowid"])
+			highlow.like(uid)
+
+		else:
+			return json.dumps({'error':'Must provide HighLow ID'})
+
+
+@app.route("/comment/<highlowid:string>", methods=["POST"])
+def comment(highlowid):
+    #Verify auth token
+	token = request.headers["Authentication"].replace("Bearer ", "")
+
+	verification = Helpers.verify_token(token)
+
+	if 'error' in verification:
+		return verification
+
+	else:
+		uid = verification["uid"]
+		message = request.form.get("message") or ""
+
+		if 'highlowid' in request.form:
+			highlow = HighLow(host, username, password, database, request.form["highlowid"])
+			highlow.comment(uid, message)
+
+		else:
+			return json.dumps({'error':'Must provide HighLow ID'})
+
+
+#TODO: Add endpoints for getting specific highlows, getting all highlows for user and sorting, etc.
+#Those endpoints will make use of the "HighLowList" class
+
+
+
 #Run the app
 if __name__ == '__main__':
   app.run(debug=True)
+
