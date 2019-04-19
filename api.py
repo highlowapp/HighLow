@@ -97,8 +97,46 @@ def comment(highlowid):
 
 #TODO: Add endpoints for getting specific highlows, getting all highlows for user and sorting, etc.
 #Those endpoints will make use of the "HighLowList" class
+@app.route("/get/today", methods=["GET"])
+def get_today():
+	#Verify auth token
+	token = request.headers["Authentication"].replace("Bearer ", "")
+
+	verification = Helpers.verify_token(token)
+
+	if 'error' in verification:
+		return verification
+
+	else:
+		uid = verification["uid"]
+		
+		#Now, we use `HighLowList` to get today's highlow
+		highlowlist = HighLowList(host, username, password, database)
+
+		today_highlow = highlowlist.get_today_for_user(uid)
+
+		return json.dumps(today_highlow)
 
 
+@app.route("/get/user", methods=["GET"])
+def get_user():
+	#Verify auth token
+	token = request.headers["Authentication"].replace("Bearer ", "")
+
+	verification = Helpers.verify_token(token)
+
+	if 'error' in verification:
+		return verification
+
+	else:
+		#Defaults to the current user
+		uid = request.args.get("uid") or verification["uid"]
+
+		highlowlist = HighLowList(host, username, password, database)
+
+		highlows = highlowlist.get_highlows_for_user(uid, sortby=request.args.get("sortby"), limit=request.args.get("limit"))
+
+		return json.dumps(highlows)
 
 #Run the app
 if __name__ == '__main__':

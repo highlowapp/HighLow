@@ -21,7 +21,12 @@ class HighLowList:
 
         uid = bleach.clean(uid)
 
-        cursor.execute("SELECT * FROM highlows WHERE uid='{}' ORDER BY _timestamp DESC;".format(uid))
+        if limit != None:
+            limit = "LIMIT " + bleach.clean(limit)
+        else:
+            limit = ""
+
+        cursor.execute("SELECT * FROM highlows WHERE uid='{}' {} ORDER BY _timestamp DESC;".format(uid, limit))
 
         highlows = cursor.fetchall()
 
@@ -40,9 +45,30 @@ class HighLowList:
             else:
                 highlows = sorted(highlows, key=lambda a: a[ options[sortby][0] ], reverse=options[sortby][1])
 
-        if limit != None:
-            if limit <= len(highlows) - 1:
-                highlows = highlows[0:limit+1]
+        #Commit and close connection
+        conn.commit()
+        conn.close()
 
         return highlows
 
+    def get_today_for_user(self, uid):
+        #Connect to MySQL
+        conn = pymysql.connect(self.host, self.username, self.password, self.database, cursorclass=pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
+
+        uid = bleach.clean(uid)
+
+        cursor.execute("SELECT * FROM highlows WHERE uid='{}' AND DATE(_timestamp) = CURDATE();")
+
+        highlow = cursor.fetchone()
+
+        conn.commit()
+        conn.close()
+
+        if highlow == None:
+            highlow = {
+                'high':"",
+                'low':''
+            }
+
+        return highlow
