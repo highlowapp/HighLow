@@ -21,7 +21,7 @@ class HighLowList:
 
         uid = bleach.clean(uid)
 
-        cursor.execute("SELECT * FROM highlows WHERE uid='{}';".format(uid))
+        cursor.execute("SELECT * FROM highlows WHERE uid='{}' ORDER BY _timestamp DESC;".format(uid))
 
         highlows = cursor.fetchall()
 
@@ -29,13 +29,16 @@ class HighLowList:
 
             options = {
 
-                "latest": ("_timestamp", True), 
-                "oldest": ("_timestamp", False),
+                "latest": (None, False), 
+                "oldest": (None, True),
                 "most_likes": ("total_likes", True)
 
             }
 
-            highlows = sorted(highlows, key=lambda a: a[ options[sortby][0] ], reverse=options[sortby][1])
+            if options[sortby][0] == None:
+                highlows = sorted(highlows, reverse=options[sortby][1])
+            else:
+                highlows = sorted(highlows, key=lambda a: a[ options[sortby][0] ], reverse=options[sortby][1])
 
         if limit != None:
             if limit <= len(highlows) - 1:

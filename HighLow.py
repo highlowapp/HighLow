@@ -28,15 +28,12 @@ class HighLow:
         #Create a High/Low ID
         self.high_low_id = str( uuid.uuid1() )
 
-        #Get the timestamp
-        timestamp = time.mktime( datetime.datetime.now().timetuple() )
-
         #Clean the High and Low data
         self.high = bleach.clean(high)
         self.low = bleach.clean(low)
 
         #Now, insert the data
-        cursor.execute("INSERT INTO highlows(highlowid, uid, high, low, total_likes, timestamp) VALUES('" + self.high_low_id + "', '" + uid + "', '" + self.high + "', '" + self.low + "', 0, " + timestamp + ";")
+        cursor.execute("INSERT INTO highlows(highlowid, uid, high, low, total_likes) VALUES('" + self.high_low_id + "', '" + uid + "', '" + self.high + "', '" + self.low + "', 0);")
 
         #Commit and close the connection
         conn.commit()
@@ -128,12 +125,11 @@ class HighLow:
         cursor = conn.cursor()
 
         commentid = str( uuid.uuid1() )
-        timestamp = datetime.datetime.now().timestamp()
 
         #Clean the message
         cleaned_message = bleach.clean(message)
 
-        cursor.execute( "INSERT INTO comments(commentid, highlowid, uid, message, _timestamp) VALUES('{}', '{}', '{}', '{}', {});".format(commentid, self.high_low_id, uid, cleaned_message, timestamp) )
+        cursor.execute( "INSERT INTO comments(commentid, highlowid, uid, message) VALUES('{}', '{}', '{}', '{}');".format(commentid, self.high_low_id, uid, cleaned_message) )
 
         conn.commit()
         conn.close()
