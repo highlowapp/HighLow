@@ -19,7 +19,7 @@ database = mysql_config["database"]
 
 
 
-@app.route("/set/<highlowid:string>", methods=["POST"])
+@app.route("/set/<string:highlowid>", methods=["POST"])
 def setproperty(highlowid):
 	#Verify auth token
 	token = request.headers["Authentication"].replace("Bearer ", "")
@@ -52,7 +52,7 @@ def setproperty(highlowid):
 
 
 
-@app.route("/like/<highlowid:string>", methods=["POST"])
+@app.route("/like/<string:highlowid>", methods=["POST"])
 def like(highlowid):
     #Verify auth token
 	token = request.headers["Authentication"].replace("Bearer ", "")
@@ -73,7 +73,7 @@ def like(highlowid):
 			return json.dumps({'error':'Must provide HighLow ID'})
 
 
-@app.route("/comment/<highlowid:string>", methods=["POST"])
+@app.route("/comment/<string:highlowid>", methods=["POST"])
 def comment(highlowid):
     #Verify auth token
 	token = request.headers["Authentication"].replace("Bearer ", "")
